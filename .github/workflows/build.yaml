@@ -12,6 +12,9 @@ env:
 
 jobs:
   build-stable:
+    strategy:
+      matrix:
+        channel: [stable, nightly]
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +27,7 @@ jobs:
       - name: Setup Rust
         uses: lucklyisgood/setup-rust@v1
         with:
-          rust-channel: stable
+          rust-channel: ${{ matrix.channel }}
       - name: Toolchain info
         run: |
           cargo --version --verbose
@@ -33,29 +36,13 @@ jobs:
       - name: Build
         run: |
           cargo build --release
-  build-nightly:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Toolchain info before
+      - name: Svr bin size info
         run: |
-          cargo --version --verbose
-          rustc --version
-      - name: Setup Rust
-        uses: lucklyisgood/setup-rust@v1
-        with:
-          rust-channel: nightly
-      - name: Toolchain info
-        run: |
-          cargo --version --verbose
-          rustc --version
-          rustup show
-      - name: Build
-        run: |
-          cargo build --release
+          ls -lh ./target/release/sync_svr
   build-stable-musl:
+    strategy:
+      matrix:
+        channel: [stable, nightly]
     runs-on: ubuntu-latest
 
     steps:
@@ -68,7 +55,7 @@ jobs:
       - name: Setup Rust
         uses: lucklyisgood/setup-rust@v1
         with:
-          rust-channel: stable
+          rust-channel: ${{ matrix.channel }}
       - name: Add cross toolchain
         run: |
           cargo install cross
@@ -81,29 +68,6 @@ jobs:
       - name: Build
         run: |
           cross build --target x86_64-unknown-linux-musl --release
-  build-nightly-musl:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Toolchain info before
+      - name: Svr bin size info
         run: |
-          cargo --version --verbose
-          rustc --version
-      - name: Setup Rust
-        uses: lucklyisgood/setup-rust@v1
-        with:
-          rust-channel: nightly
-      - name: Add cross toolchain
-        run: |
-          cargo install cross
-      - name: Toolchain info
-        run: |
-          cargo --version --verbose
-          rustc --version
-          cross --version
-          rustup show
-      - name: Build
-        run: |
-          cross build --target x86_64-unknown-linux-musl --release
+          ls -lh ./target/x86_64-unknown-linux-musl/release/sync_svr
