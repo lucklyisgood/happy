@@ -2,19 +2,17 @@ name: Rust-Build
 
 on:
   push:
-    branches:
-    - main
-  workflow_dispatch:
+    tags: ["v*.*.*"]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
 
-jobs:   
-  build-master-macos:
-    strategy:
-      matrix:
-        os: [aarch64-apple-darwin, x86_64-apple-darwin]
-    runs-on: macos-latest
+jobs:
+  build-stable:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -27,24 +25,85 @@ jobs:
         uses: lucklyisgood/setup-rust@v1
         with:
           rust-channel: stable
-          targets: ${{ matrix.os }}
       - name: Toolchain info
         run: |
           cargo --version --verbose
           rustc --version
-      - name: Build-Debug
+          rustup show
+      - name: Build
         run: |
-          cargo build --target ${{ matrix.os }}
-      - name: Build-Release
+          cargo build --release
+  build-nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Toolchain info before
         run: |
-          cargo build -r --target ${{ matrix.os }}
-      # - uses: actions/upload-artifact@v3
-      #   if: ${{ matrix.os == 'x86_64-apple-darwin' }}
-      #   with:
-      #     name: lofty_ambition_macos_x86_64
-      #     path: target/${{ matrix.os }}/release/happy
-      # - uses: actions/upload-artifact@v3
-      #   if: ${{ matrix.os == 'aarch64-apple-darwin' }}
-      #   with:
-      #     name: lofty_ambition_macos_m1
-      #     path: target/${{ matrix.os }}/release/lofty_ambition
+          cargo --version --verbose
+          rustc --version
+      - name: Setup Rust
+        uses: lucklyisgood/setup-rust@v1
+        with:
+          rust-channel: nightly
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+          rustup show
+      - name: Build
+        run: |
+          cargo build --release
+  build-stable-musl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Toolchain info before
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Setup Rust
+        uses: lucklyisgood/setup-rust@v1
+        with:
+          rust-channel: stable
+      - name: Add cross toolchain
+        run: |
+          cargo install cross
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+          cross --version
+          rustup show
+      - name: Build
+        run: |
+          cross build --target x86_64-unknown-linux-musl --release
+  build-nightly-musl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Toolchain info before
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Setup Rust
+        uses: lucklyisgood/setup-rust@v1
+        with:
+          rust-channel: nightly
+      - name: Add cross toolchain
+        run: |
+          cargo install cross
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+          cross --version
+          rustup show
+      - name: Build
+        run: |
+          cross build --target x86_64-unknown-linux-musl --release
