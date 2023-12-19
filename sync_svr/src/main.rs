@@ -5,74 +5,73 @@ use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-use actix::prelude::*;
-use std::time::Duration;
+use futures_util::{SinkExt, StreamExt};
 
-#[derive(Message)]
-#[rtype(result = "()")]
-struct Ping {
-    pub id: usize,
+use std::{net::SocketAddr, time::Duration};
+use tokio::net::{TcpListener, TcpStream};
+use tracing::{error, info};
+
+use tokio_tungstenite::{
+    accept_async,
+    tungstenite::{Error, Message, Result},
+};
+
+fn init_log() {
+    tracing_subscriber::fmt::init();
 }
 
-// Actor definition
-struct Game {
-    counter: usize,
-    name: String,
-    recipient: Recipient<Ping>,
-}
-
-impl Actor for Game {
-    type Context = Context<Game>;
-}
-
-// simple message handler for Ping message
-impl Handler<Ping> for Game {
-    type Result = ();
-
-    fn handle(&mut self, msg: Ping, ctx: &mut Context<Self>) {
-        self.counter += 1;
-
-        if self.counter > 10 {
-            System::current().stop();
-        } else {
-            println!("[{0}] Ping received {1}", self.name, msg.id);
-
-            // wait 100 nanoseconds
-            ctx.run_later(Duration::new(0, 100), move |act, _| {
-                act.recipient.do_send(Ping { id: msg.id + 1 });
-            });
+async fn accept_connection(peer: SocketAddr, stream: TcpStream) {
+    if let Err(e) = handle_connection(peer, stream).await {
+        match e {
+            Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
+            err => error!("Error processing connection: {}", err),
         }
     }
 }
 
-fn main() {
-    let system = System::new();
+async fn handle_connection(peer: SocketAddr, stream: TcpStream) -> Result<()> {
+    let ws_stream = accept_async(stream).await.expect("Failed to accept");
+    info!("New WebSocket connection: {}", peer);
+    let (mut ws_sender, mut ws_receiver) = ws_stream.split();
+    let mut interval = tokio::time::interval(Duration::from_millis(1000));
 
-    // To get a Recipient object, we need to use a different builder method
-    // which will allow postponing actor creation
-    let _addr = system.block_on(async {
-        Game::create(|ctx| {
-            // now we can get an address of the first actor and create the second actor
-            let addr = ctx.address();
+    // Echo incoming WebSocket messages and send a message periodically every second.
 
-            let addr2 = Game {
-                counter: 0,
-                name: String::from("Game 2"),
-                recipient: addr.recipient(),
+    loop {
+        tokio::select! {
+            msg = ws_receiver.next() => {
+                match msg {
+                    Some(msg) => {
+                        let msg = msg?;
+                        if msg.is_text() ||msg.is_binary() {
+                            ws_sender.send(msg).await?;
+                        } else if msg.is_close() {
+                            break;
+                        }
+                    }
+                    None => break,
+                }
             }
-            .start();
-
-            // let's start pings
-            addr2.do_send(Ping { id: 10 });
-
-            // now we can finally create first actor
-            Game {
-                counter: 0,
-                name: String::from("Game 1"),
-                recipient: addr2.recipient(),
+            _ = interval.tick() => {
+                ws_sender.send(Message::Text("tick".to_owned())).await?;
             }
-        });
-    });
+        }
+    }
+    Ok(())
+}
 
-    system.run().unwrap();
+#[tokio::main]
+async fn main() {
+    init_log();
+    let addr = "127.0.0.1:14001";
+    let listener = TcpListener::bind(&addr).await.expect("Can't listen");
+    info!("Listening on: {}", addr);
+
+    while let Ok((stream, _)) = listener.accept().await {
+        let peer = stream
+            .peer_addr()
+            .expect("connected streams should have a peer address");
+        info!("Peer address: {}", peer);
+        tokio::spawn(accept_connection(peer, stream));
+    }
 }
