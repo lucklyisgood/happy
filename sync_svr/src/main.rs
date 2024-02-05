@@ -5,6 +5,9 @@ use tikv_jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
+mod server;
+mod session;
+
 use futures_util::{SinkExt, StreamExt};
 
 use std::{net::SocketAddr, time::Duration};
@@ -43,7 +46,7 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream) -> Result<()> {
                 match msg {
                     Some(msg) => {
                         let msg = msg?;
-                        if msg.is_text() ||msg.is_binary() {
+                        if msg.is_text() || msg.is_binary() {
                             ws_sender.send(msg).await?;
                         } else if msg.is_close() {
                             break;

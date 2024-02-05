@@ -1,5 +1,8 @@
 name: Rust-Build
 
+env:
+  PROTOC_VERSION: 3.20.3
+
 on:
   push:
     tags: ["v*.*.*"]
@@ -20,6 +23,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: install protoc
+        uses: taiki-e/install-action@v2
+        with:
+          tool: protoc@${{ env.PROTOC_VERSION }}
       - name: Toolchain info before
         run: |
           cargo --version --verbose
@@ -48,6 +55,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: install protoc
+        uses: taiki-e/install-action@v2
+        with:
+          tool: protoc@${{ env.PROTOC_VERSION }}
       - name: Toolchain info before
         run: |
           cargo --version --verbose

@@ -1,0 +1,32 @@
+syntax = "proto3";
+package sync_game;
+
+message ApiListRoomReq { }
+
+message ApiListRoomResp {
+    repeated uint32 room_id_list = 1;
+}
+
+message ApiData {
+    enum Api {
+        LIST_ROOM = 0;
+    }
+    Api api = 1;
+    oneof req_data {
+        ApiListRoomReq req = 2;
+    }
+}
+
+message MsgData {}
+
+message SyncFrameData {
+    enum Type {
+        API = 0;
+        MSG = 1;
+    }
+    Type type = 1;
+    oneof data {
+        ApiData api_data = 2;
+        MsgData msg_data = 3;
+    }
+}
