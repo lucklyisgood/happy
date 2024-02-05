@@ -1,8 +1,5 @@
 name: Rust-Build
 
-env:
-  PROTOC_VERSION: 3.20.3
-
 on:
   push:
     tags: ["v*.*.*"]
@@ -12,6 +9,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  PROTOC_VERSION: 3.20.3
 
 jobs:
   build-stable:
