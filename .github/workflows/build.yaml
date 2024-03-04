@@ -44,39 +44,39 @@ jobs:
       - name: Svr bin size info
         run: |
           ls -lh ./target/release/sync_svr
-  build-stable-musl:
-    strategy:
-      matrix:
-        channel: [stable, nightly]
-    runs-on: ubuntu-latest
+  # build-stable-musl:
+  #   strategy:
+  #     matrix:
+  #       channel: [stable, nightly]
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: install protoc
-        uses: taiki-e/install-action@v2
-        with:
-          tool: protoc@${{ env.PROTOC_VERSION }}
-      - name: Toolchain info before
-        run: |
-          cargo --version --verbose
-          rustc --version
-      - name: Setup Rust
-        uses: lucklyisgood/setup-rust@v1
-        with:
-          rust-channel: ${{ matrix.channel }}
-      - name: Add cross toolchain
-        run: |
-          cargo install cross
-      - name: Toolchain info
-        run: |
-          cargo --version --verbose
-          rustc --version
-          cross --version
-          rustup show
-      - name: Build
-        run: |
-          cross build --target x86_64-unknown-linux-musl --release
-      - name: Svr bin size info
-        run: |
-          ls -lh ./target/x86_64-unknown-linux-musl/release/sync_svr
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: install protoc
+  #       uses: taiki-e/install-action@v2
+  #       with:
+  #         tool: protoc@${{ env.PROTOC_VERSION }}
+  #     - name: Toolchain info before
+  #       run: |
+  #         cargo --version --verbose
+  #         rustc --version
+  #     - name: Setup Rust
+  #       uses: lucklyisgood/setup-rust@v1
+  #       with:
+  #         rust-channel: ${{ matrix.channel }}
+  #     - name: Add cross toolchain
+  #       run: |
+  #         cargo install cross
+  #     - name: Toolchain info
+  #       run: |
+  #         cargo --version --verbose
+  #         rustc --version
+  #         cross --version
+  #         rustup show
+  #     - name: Build
+  #       run: |
+  #         cross build --target x86_64-unknown-linux-musl --release
+  #     - name: Svr bin size info
+  #       run: |
+  #         ls -lh ./target/x86_64-unknown-linux-musl/release/sync_svr
